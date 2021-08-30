@@ -4,11 +4,9 @@
 #include <sys/msg.h>
 #define MAX 10
 
-char program_prefix[] = "[receiving_client]";
-
 void prefix()
 {
-    printf("%s ", program_prefix);
+    printf("[receiving_client] ");
 }
 
 struct mesg_buffer
@@ -19,9 +17,5 @@ struct mesg_buffer
 
 int main(int argc, char **argv)
 {
-    if (argc != 2)
-    {
-        prefix();
-        printf("Uso: %s <filepath>\n", argv[0]);
-    }
+    // aguarda e printa...
 }

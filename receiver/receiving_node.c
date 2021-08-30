@@ -29,7 +29,6 @@ int main(int argc, char *argv[])
         printf("Digite IP e Porta para este servidor\n");
         exit(1);
     }
-    /* Criacao do socket UDP */
     sd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sd < 0)
     {
@@ -38,12 +37,10 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    /* Preenchendo informacoes sobre o servidor */
     endServ.sin_family = AF_INET;
     endServ.sin_addr.s_addr = inet_addr(argv[1]);
     endServ.sin_port = htons(atoi(argv[2]));
 
-    /* Fazendo um bind na porta local do servidor */
     rc = bind(sd, (struct sockaddr *)&endServ, sizeof(endServ));
     if (rc < 0)
     {
@@ -55,14 +52,10 @@ int main(int argc, char *argv[])
     prefix();
     printf("%s: esperando por dados no IP: %s, porta UDP numero: %s\n", argv[0], argv[1], argv[2]);
 
-    /* Este servidor entra num loop infinito esperando dados de clientes */
     while (1)
     {
-
-        /* inicia o buffer */
         memset(msg, 0x0, MAX_MSG);
         tam_Cli = sizeof(endCli);
-        /* recebe a mensagem  */
         n = recvfrom(sd, msg, MAX_MSG, 0, (struct sockaddr *)&endCli, &tam_Cli);
         if (n < 0)
         {
@@ -71,13 +64,10 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        /* imprime a mensagem recebida na tela do usuario */
         prefix();
-        printf("{UDP, IP_L: %s, Porta_L: %u", inet_ntoa(endServ.sin_addr), ntohs(endServ.sin_port));
+        printf("Conexão receptora {UDP, IP_L: %s, Porta_L: %u", inet_ntoa(endServ.sin_addr), ntohs(endServ.sin_port));
         prefix();
         printf(" IP_R: %s, Porta_R: %u} => %s\n", inet_ntoa(endCli.sin_addr), ntohs(endCli.sin_port), msg);
-
-    } /* fim do while */
+    }
     return 0;
-
-} /* fim do programa */
+}
