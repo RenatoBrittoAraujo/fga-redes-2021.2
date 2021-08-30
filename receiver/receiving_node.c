@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
 
     if (argc < 3)
     {
+        prefix();
         printf("Digite IP e Porta para este servidor\n");
         exit(1);
     }
@@ -32,6 +33,7 @@ int main(int argc, char *argv[])
     sd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sd < 0)
     {
+        prefix();
         printf("%s: nao pode abrir o socket \n", argv[0]);
         exit(1);
     }
@@ -45,10 +47,12 @@ int main(int argc, char *argv[])
     rc = bind(sd, (struct sockaddr *)&endServ, sizeof(endServ));
     if (rc < 0)
     {
+        prefix();
         printf("%s: nao pode fazer bind na porta %s \n", argv[0], argv[2]);
         exit(1);
     }
 
+    prefix();
     printf("%s: esperando por dados no IP: %s, porta UDP numero: %s\n", argv[0], argv[1], argv[2]);
 
     /* Este servidor entra num loop infinito esperando dados de clientes */
@@ -62,12 +66,15 @@ int main(int argc, char *argv[])
         n = recvfrom(sd, msg, MAX_MSG, 0, (struct sockaddr *)&endCli, &tam_Cli);
         if (n < 0)
         {
+            prefix();
             printf("%s: nao pode receber dados \n", argv[0]);
             continue;
         }
 
         /* imprime a mensagem recebida na tela do usuario */
+        prefix();
         printf("{UDP, IP_L: %s, Porta_L: %u", inet_ntoa(endServ.sin_addr), ntohs(endServ.sin_port));
+        prefix();
         printf(" IP_R: %s, Porta_R: %u} => %s\n", inet_ntoa(endCli.sin_addr), ntohs(endCli.sin_port), msg);
 
     } /* fim do while */

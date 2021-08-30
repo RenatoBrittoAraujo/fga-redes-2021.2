@@ -3,13 +3,13 @@
 Para compilar:
 
 ```
-
+./compile.sh
 ```
 
 Para levantar a rede após compilação:
 
 ```
-
+./run.sh
 ```
 
-Para testar, pode usar o arquivo de teste `samplefile.json`
+Para testar, é usado o arquivo de teste `samplefile.json`

@@ -36,6 +36,7 @@ int main(int argc, char **argv)
     msgid = msgget(key, 0666 | IPC_CREAT);
     message.mesg_type = 1;
 
+    prefix();
     printf("Write Data : ");
     fgets(message.mesg_text, MAX, stdin);
 
@@ -43,6 +44,7 @@ int main(int argc, char **argv)
     msgsnd(msgid, &message, sizeof(message), 0);
 
     // display the message
+    prefix();
     printf("Data send is : %s \n", message.mesg_text);
 
     return 0;

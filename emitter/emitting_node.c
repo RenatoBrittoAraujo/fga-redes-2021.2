@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
     sd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sd < 0)
     {
+        prefix();
         printf("%s: n�o pode abrir o socket \n", argv[0]);
         exit(1);
     }
@@ -55,9 +56,11 @@ int main(int argc, char *argv[])
     rc = bind(sd, (struct sockaddr *)&ladoCli, sizeof(ladoCli));
     if (rc < 0)
     {
+        prefix();
         printf("%s: n�o pode fazer um bind da porta\n", argv[0]);
         exit(1);
     }
+    prefix();
     printf("{UDP, IP_Cli: %s, Porta_Cli: %u, IP_R: %s, Porta_R: %s}\n", inet_ntoa(ladoCli.sin_addr), ntohs(ladoCli.sin_port), argv[1], argv[2]);
 
     /* Enviando um pacote para cada parametro informado */
@@ -66,10 +69,12 @@ int main(int argc, char *argv[])
         rc = sendto(sd, argv[i], strlen(argv[i]), 0, (struct sockaddr *)&ladoServ, sizeof(ladoServ));
         if (rc < 0)
         {
+            prefix();
             printf("%s: nao pode enviar dados %d \n", argv[0], i - 1);
             close(sd);
             exit(1);
         }
+        prefix();
         printf("Enviando parametro %d: %s\n", i - 2, argv[i]);
     } /* fim do for (laco) */
     return 1;
