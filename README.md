@@ -16,23 +16,29 @@ transparente o que está acontecendo.
 Aqui temos um diagrama da comunicação:
 
 ```
-  samplefile.json ------                         --------> stdout final
-                       |                         |
-                       v                         |
-                   e_client                  r_client
-                       |                         ^
-                _______|______              _____|_______
-                |message queue|            |message queue|
-                ‾‾‾‾‾‾‾|‾‾‾‾‾‾             ‾‾‾‾‾‾|‾‾‾‾‾‾‾
-                       v       __________        |
-                     e_node ---|canal TCP|---> r_node
+  samplefile.json ------                          --------> stdout final
+                       |                          |
+                       v                          |
+                   e_client                   r_client
+                       |                          ^
+                _______|______               _____|_______
+                |message queue|             |message queue|
+                ‾‾‾‾‾‾‾|‾‾‾‾‾‾               ‾‾‾‾‾|‾‾‾‾‾‾‾
+                       v       ___________        |
+                     e_node ---|canal UDP|----> r_node
                                ‾‾‾‾‾‾‾‾‾‾‾
 ```
 
-O canal TCP, no transmissor, aleatóriamente introduz erros na mensagem prestes
-a ser enviada, para simular erro de comunicação. Quem é responsável por detectar
-ou requisitar a re-emissão do sinal é o cliente, até que, por pura chance, a
-mensagem recebida seja válida.
+Quadros, trasmitidos no canal UDP, tem 65 bits de header:
+```
+__________________________________________________________________________
+| Dados (n bits) | Indice do quadro (64 bits) | Bit de paridade (1 bits) |
+‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+```
+O indice serve para ordenar na chegada. É usado 64 bits porque suporta a
+transferência de, aproximadamente, um zettabit de dados onde cada quadro tem 
+índice único => [ (50 * 2^64) / (10^21) ] é, aproximadamente, 1
+
 
 ## Uso
 
@@ -97,8 +103,6 @@ função em um lugar de memória descontínuo do argv e o problema se resolveu.
 
 backlog:
 - fazer comunicações entre nodos
-- criar sistema de "quebra randômica" dos dados para testar a integridade da 
-  transmissão.
 - criar sistema de recuperação por retransmissão de dados corrompidos (bytes).
 - transformar tudo feito em half-duplex, realizado por 2 binários em 4 processos.
 
@@ -108,4 +112,7 @@ backlog:
   de ordem. O transmissor só emite mensagens quando o receptor captura uma nova, o
   que, não necessáriamente, precisa acontecer.
 - Para implementar half-duplex, seria interessante usar threads. Atualmente, existe
-  apenas uma thread relevante em todos os processos: a principal. 
+  apenas uma thread relevante em todos os processos: a principal.
+- Não existe o tratamento do caso do bit de paridade vier errado, além disso, dados
+  demais são transmitidos para apenas um bit de paridade, o que aumento o risco de
+  perda de dados

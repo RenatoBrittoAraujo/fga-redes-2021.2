@@ -8,4 +8,4 @@ gcc receiver/receiving_client.c -o bin/r_client
 ./bin/r_client                     & \
 ./bin/r_node 50 0.0.0.0 8000       & \
 ./bin/e_node 50 0.0.0.0 8000       & \
-./bin/e_client samplefile.json
+./bin/e_client samplefile.json     

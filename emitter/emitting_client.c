@@ -44,13 +44,12 @@ char *read_file(char *filename)
 
 void send_message_buffer(char *data, int data_size)
 {
-    // int ceil of data_size / MAX_MSG_BLOCK_SIZE
-    int frame_count = 1 + ((data_size - 1) / MAX_MSG_BLOCK_SIZE);
+    int frame_count = 1 + ((data_size - 1) / MAX_MSG_BLOCK_SIZE); // int ceil of data_size / MAX_MSG_BLOCK_SIZE
 
     key_t key;
     int msgid;
     key = ftok("progfile", 65);
-    msgid = msgget(key, 0666 | IPC_CREAT);
+    msgid = msgget(key, 0666 | IPC_CREAT | IPC_PRIVATE);
 
     { // send header message (with frame count)
         struct mesg_buffer message;

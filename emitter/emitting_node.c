@@ -10,8 +10,11 @@
 #include <stdio.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <stdint.h>
 
 #define MAX_MSG_BLOCK_SIZE 10
+#define FRAME_PARITY_BIT_SIZE 1
+#define FRAME_INDEX_BIT_SIZE 64
 
 void prefix()
 {
@@ -28,8 +31,8 @@ char *get_client_message()
 {
     key_t key;
     int msgid;
-    key = ftok("progfile", 65);
-    msgid = msgget(key, 0666 | IPC_CREAT);
+    key = ftok("receiving", 69);
+    msgid = msgget(key, IPC_PRIVATE);
 
     int msgs_count = -1;
     int received_count = 0;
@@ -74,11 +77,150 @@ char *get_client_message()
     return message_str;
 }
 
-void transmit_file(char *filecontent, int argc, char *argv[])
+void printcharbit(const char *str, char c)
 {
-    char *ip = argv[1];
-    char *host = argv[2];
+    printf("%s: ", str);
+    for (int i = 0; i < sizeof(char) * 8; i++)
+    {
+        if (c & (1UL << i))
+            printf("1");
+        else
+            printf("0");
+    }
+    printf("\n");
+}
 
+void printframe(char *str, char *frame, int frame_size)
+{
+    printf("%s:\t", str);
+    int charv = sizeof(char) * 8;
+    printf("|");
+    for (int i = 0; i < frame_size; i++)
+    {
+        if (i == frame_size - 1 || i == frame_size - 65)
+            printf("|");
+
+        if (frame[i / charv] & (1UL << (i % charv)))
+            printf("1");
+        else
+            printf("0");
+    }
+    printf("|");
+    printf("\n");
+}
+
+void file_to_packets(char *file_content, int frame_content_size, char ***frames_o, int *frame_count_o)
+{
+    /*
+        Aqui fazemos o processo de dividir a string em seus respectivos quadros e precalcular
+        constantes
+    */
+
+    int CHAR_BITS = sizeof(char) * 8;
+
+    int file_size = strlen(file_content);  // bytes
+    int bit_count = file_size * CHAR_BITS; // bits
+
+    int frame_size = frame_content_size + FRAME_INDEX_BIT_SIZE + FRAME_PARITY_BIT_SIZE; // bits
+
+    int frame_count = 1 + ((bit_count - 1) / frame_content_size); // ceil bit_count / frame_content_size
+    int frame_string_size = 1 + ((frame_size - 1) / CHAR_BITS);   // ceil frame_size / bits num char
+
+    int filep = 0;
+
+    char **frames = (char **)malloc(sizeof(char *) * (frame_count + 1));
+
+    for (uint64_t frame_index = 0; frame_index < frame_count; frame_index++)
+    {
+        /*
+           Começa a manipulação dos bits, capaz de gerar quadros de qualquer tamanho e enviando-os
+           frame por frame.
+
+           NÂO ESTÁ OTIMIZADO, está feito assim para facilitar entendimento do avaliador ( e o meu :) )
+        */
+
+        char *frame = (char *)malloc(sizeof(char) * frame_string_size);
+        { // Seta todos os bits do frame para 0
+            char zerochar = '?';
+            for (int i = 0; i < CHAR_BITS; i++)
+            {
+                zerochar &= ~(1UL << i);
+            }
+            for (int i = 0; i < frame_string_size; i++)
+            {
+                frame[i] = zerochar;
+            }
+        }
+
+        // Insere conteúdo do frame
+        for (int fi = 0; fi < frame_content_size; fi++)
+        {
+            if (filep >= file_size * 8)
+            {
+                break;
+            }
+            int filebit = (1UL << (filep % CHAR_BITS)) & file_content[filep / CHAR_BITS];
+            if (filebit)
+            {
+                frame[fi / CHAR_BITS] |= (1UL << (fi % CHAR_BITS));
+            }
+            filep++;
+        }
+
+        // Insere index do quadro
+        for (int fi = frame_content_size; fi < frame_content_size + FRAME_INDEX_BIT_SIZE; fi++)
+        {
+            int intbit = !!((1LL << (fi - frame_content_size)) & frame_index);
+            if (intbit)
+            {
+                frame[fi / CHAR_BITS] |= (1UL) << (fi % CHAR_BITS);
+            }
+        }
+
+        int parity_bit = 0; // faz da soma de paridade final ser sempre par
+        {
+            for (int i = 0; i < frame_content_size + FRAME_INDEX_BIT_SIZE; i++)
+            {
+                int bitis1 = frame[i / CHAR_BITS] & (1UL << (i % CHAR_BITS));
+                if (bitis1)
+                {
+                    parity_bit = !parity_bit;
+                }
+            }
+        }
+
+        // Insere bit de paridade
+        int pos = frame_content_size + FRAME_INDEX_BIT_SIZE;
+        if (parity_bit)
+        {
+            frame[pos / CHAR_BITS] |= (1 << (pos % CHAR_BITS));
+        }
+
+        // frame completo :) nossa essa função teve erro demais eu to exausto de debugar kk
+        frames[frame_index] = frame;
+    }
+
+    // Add end frame
+    frames[frame_count] = (char *)malloc(sizeof(char *) * frame_string_size);
+    for (int i = 0; i < frame_size; i++)
+    {
+        frames[frame_count][i / CHAR_BITS] |= 1 << (i % CHAR_BITS);
+    }
+
+    // Valores de retorno
+    (*frame_count_o) = frame_count + 1;
+    (*frames_o) = frames;
+}
+
+void transmit_file(char *file_content, int argc, char *argv[])
+{
+    char *ip = argv[2];
+    char *host = argv[3];
+    int frame_content_size = atoi(argv[1]);
+
+    /*
+        ========= Código do professor
+    */
     int sd, rc, i;
     struct sockaddr_in ladoCli;
     struct sockaddr_in ladoServ;
@@ -95,7 +237,7 @@ void transmit_file(char *filecontent, int argc, char *argv[])
     if (sd < 0)
     {
         prefix();
-        printf("%s: n�o pode abrir o socket \n", argv[0]);
+        printf("%s: não pode abrir o socket \n", argv[0]);
         exit(1);
     }
 
@@ -103,15 +245,25 @@ void transmit_file(char *filecontent, int argc, char *argv[])
     if (rc < 0)
     {
         prefix();
-        printf("%s: n�o pode fazer um bind da porta\n", argv[0]);
+        printf("%s: não pode fazer um bind da porta\n", argv[0]);
         exit(1);
     }
+    /*
+        AQUI NOS CONVERTERMOS O CONTEUDO DO ARQUIVO PARA PACOTES!
+    */
+    char **frames;
+    int frame_count;
+    file_to_packets(file_content, frame_content_size, &frames, &frame_count);
     prefix();
-    printf("Conexão emissora {UDP, IP_Cli: %s, Porta_Cli: %u, IP_R: %s, Porta_R: %s}\n", inet_ntoa(ladoCli.sin_addr), ntohs(ladoCli.sin_port), argv[1], argv[2]);
+    printf("Pacotes enviados = %d\n", frame_count);
 
-        for (i = 3; i < argc; i++)
+    for (int i = 0; i < frame_count; i++)
     {
-        rc = sendto(sd, argv[i], strlen(argv[i]), 0, (struct sockaddr *)&ladoServ, sizeof(ladoServ));
+        char v[10];
+        sprintf(v, "Pacote %d", i);
+        prefix();
+        printframe(v, frames[i], frame_content_size + 64 + 1);
+        rc = sendto(sd, frames[i], strlen(frames[i]), 0, (struct sockaddr *)&ladoServ, sizeof(ladoServ));
         if (rc < 0)
         {
             prefix();
@@ -119,9 +271,10 @@ void transmit_file(char *filecontent, int argc, char *argv[])
             close(sd);
             exit(1);
         }
-        prefix();
-        printf("Enviando parametro %d: %s\n", i - 2, argv[i]);
     }
+    /*
+        ========= Fim do código do professor
+    */
 }
 
 int main(int argc, char *argv[])
@@ -134,9 +287,6 @@ int main(int argc, char *argv[])
     }
 
     char *message_str = get_client_message();
-
-    prefix();
-    printf("Arquivo recebido do cliente: %s\n", message_str);
 
     transmit_file(message_str, argc, argv);
 
