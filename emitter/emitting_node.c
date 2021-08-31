@@ -32,7 +32,7 @@ char *get_client_message()
     key_t key;
     int msgid;
     key = ftok("receiving", 69);
-    msgid = msgget(key, IPC_PRIVATE);
+    msgid = msgget(key, 0666 | IPC_CREAT);
 
     int msgs_count = -1;
     int received_count = 0;

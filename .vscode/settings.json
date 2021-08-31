@@ -3,6 +3,7 @@
         "ipc.h": "c",
         "stdio.h": "c",
         "string.h": "c",
-        "netdb.h": "c"
+        "netdb.h": "c",
+        "in.h": "c"
     }
 }

@@ -101,8 +101,17 @@ mudei o arquivo do que era para apenas "{}" e o problema sumiu, que confirmou a
 hipótese. Daí alterei o código para instanciar o ponteiro apenas dentro da
 função em um lugar de memória descontínuo do argv e o problema se resolveu.
 
+As filas ainda causam problemas. Por algum motivo que ainda não solucionei, as
+vezes, as filas de um processo afetam as do outro causando um falha na comunicação.
+Não entendo bem como essa falha acontece, e porque ela acontece apenas algumas
+vezes. Não tive tempo para investigar.
+
+A implementação da transmissão deu trabalho, e consigo enxergar diversas falhas
+nela, mas ela funciona! Faltou fazer o sistema ser mais resiliente a falhas, por
+exemplo, com um pacote perdido. Como ainda é simplex, não é possível pedir
+novamente nenhuma pacote perdido.
+
 backlog:
-- fazer comunicações entre nodos
 - criar sistema de recuperação por retransmissão de dados corrompidos (bytes).
 - transformar tudo feito em half-duplex, realizado por 2 binários em 4 processos.
 
@@ -116,3 +125,10 @@ backlog:
 - Não existe o tratamento do caso do bit de paridade vier errado, além disso, dados
   demais são transmitidos para apenas um bit de paridade, o que aumento o risco de
   perda de dados
+- O servidor do receiving_node não consegue lidar com múltiplas mensagens.
+  Possivelmente, isso pode ser resolvido com um fork() e um pouco de ingenuidade.
+- A comunicações entre filas é bem problemática. Não sei a fonte do problema, mas
+  causa muitos erros.
+- Acredito que, com mais headers no pacote, seria possível discernir melhor os
+  pacotes para saber a qual grupo pertencem.
+- Ainda não existe mecânismo para a ordenação de pacotes por falta de tempo.

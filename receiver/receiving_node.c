@@ -47,13 +47,13 @@ void packets_to_file(char **frames, int frame_count, int frame_content_size, cha
     int CHAR_BITS = sizeof(char) * 8;
 
     int filep = 0;
-    int file_capacity = 1;
+    int file_capacity = 4;
     char *file_content = (char *)malloc(sizeof(char) * file_capacity);
 
     for (uint64_t frame_index = 0; frame_index < frame_count; frame_index++)
     {
         /*
-           Começa a manipulação dos bits, capaz de tornar pacotes em arquivos.
+           Começa a manipulação dos bits, capaz de tornar pacotes em arquivo.
 
            NÂO ESTÁ OTIMIZADO, está feito assim para facilitar entendimento do avaliador ( e o meu :) )
         */
@@ -70,7 +70,7 @@ void packets_to_file(char **frames, int frame_count, int frame_content_size, cha
             int framebit = (1UL << (fi % CHAR_BITS)) & frames[frame_index][fi / CHAR_BITS];
             if (framebit)
             {
-                file_content[filep / CHAR_BITS] |= (1UL << (filep % CHAR_BITS));
+                file_content[filep / CHAR_BITS] |= (1 << (filep % CHAR_BITS));
             }
             filep++;
         }
@@ -102,7 +102,7 @@ void send_message_buffer(char *data, int data_size)
     key_t key;
     int msgid;
     key = ftok("progfile", 65);
-    msgid = msgget(key, IPC_PRIVATE);
+    msgid = msgget(key, 0666 | IPC_CREAT | IPC_PRIVATE);
 
     { // send header message (with frame count)
         struct mesg_buffer message;

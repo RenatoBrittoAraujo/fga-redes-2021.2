@@ -49,7 +49,7 @@ void send_message_buffer(char *data, int data_size)
     key_t key;
     int msgid;
     key = ftok("progfile", 65);
-    msgid = msgget(key, 0666 | IPC_CREAT | IPC_PRIVATE);
+    msgid = msgget(key, 0666 | IPC_CREAT);
 
     { // send header message (with frame count)
         struct mesg_buffer message;
