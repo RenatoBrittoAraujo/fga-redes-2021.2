@@ -39,7 +39,7 @@ char *get_client_message()
     int msgs_count = -1;
     int received_count = 0;
     struct mesg_buffer confirm_message;
-    confirm_message.mesg_type = 2;
+    confirm_message.mesg_type = 4;
 
     char *message_str;
 
@@ -48,7 +48,7 @@ char *get_client_message()
         struct mesg_buffer message;
 
         // receive message
-        msgrcv(msgid, &message, sizeof(message), 2, 0);
+        msgrcv(msgid, &message, sizeof(message), 4, 0);
 
         if (msgs_count == -1)
         {

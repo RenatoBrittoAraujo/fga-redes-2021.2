@@ -106,7 +106,7 @@ void send_message_buffer(char *data, int data_size)
 
     { // send header message (with frame count)
         struct mesg_buffer message;
-        message.mesg_type = 2;
+        message.mesg_type = 4;
         char size_buffer[MAX_MSG_BLOCK_SIZE + 1];
         sprintf(size_buffer, "%d", frame_count + 1);
         strcpy(message.mesg_text, size_buffer);
@@ -118,7 +118,7 @@ void send_message_buffer(char *data, int data_size)
     {
         struct mesg_buffer message;
         char msg[100];
-        message.mesg_type = 1;
+        message.mesg_type = 4;
 
         for (int i = MAX_MSG_BLOCK_SIZE * index;
              i < data_size && i < MAX_MSG_BLOCK_SIZE * (index + 1);
@@ -143,7 +143,7 @@ void send_message_buffer(char *data, int data_size)
         msgsnd(msgid, &message, sizeof(message), 0);
 
         // await confirmation from receiver process
-        msgrcv(msgid, &message, sizeof(message), 2, 0);
+        msgrcv(msgid, &message, sizeof(message), 4, 0);
         index++;
     }
 

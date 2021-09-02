@@ -1,5 +1,7 @@
 ## Trabalho 1
 
+O projeto foi feito sozinho pelo aluno Renato Britto Araujo 180027239
+
 Para compilar, levantar a rede e fazer upload do arquivo "samplefile.json":
 
 ```
