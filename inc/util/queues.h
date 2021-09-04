@@ -1,5 +1,5 @@
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef QUEUES_H
+#define QUEUES_H
 
 #define MAX_MSG_BLOCK_SIZE 10
 

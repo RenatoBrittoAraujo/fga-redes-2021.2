@@ -1,8 +1,8 @@
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef PACKETS_H
+#define PACKETS_H
 
-#define FRAME_PARITY_BIT_SIZE 1
-#define FRAME_INDEX_BIT_SIZE 64
+#define PACKET_PARITY_BIT_SIZE 1
+#define PACKET_INDEX_BIT_SIZE 64
 
 /*
     packets_to_file
@@ -17,9 +17,9 @@
         - return: ponteiro para memória alocada com o arquivo. 
 */
 char **packets_to_file(
-    char **packets,
-    int packet_count,
-    int packet_content_size);
+    const char **packets,
+    const int packet_count,
+    const int packet_content_size);
 
 /*
     file_to_packets
@@ -36,8 +36,8 @@ char **packets_to_file(
           pacotes.
 */
 void file_to_packets(
-    char *file_content,
-    int packet_content_size,
+    const char *file_content,
+    const int packet_content_size,
     char ***packets_o,
     int *packet_count_o);
 

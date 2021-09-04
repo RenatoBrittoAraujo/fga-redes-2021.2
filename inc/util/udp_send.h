@@ -1,5 +1,7 @@
-#ifndef QUEUE_H
-#define QUEUE_H
+#ifndef UPD_SEND_H
+#define UPD_SEND_H
+
+#define MAX_MSG 100
 
 /*
     transmit_packets
@@ -14,6 +16,7 @@
 */
 void transmit_packets(
     const char **packets,
+    const int packet_count,
     const int packet_size,
     const char *ip,
     const char *port);
@@ -32,6 +35,7 @@ void transmit_packets(
         - return: ponteiro para memória alocada com os pacotes. 
 */
 char ***listen_for_transmission(
+    const int packet_count,
     const int packet_size,
     const char *ip,
     const char *port);
