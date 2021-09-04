@@ -1,40 +1,110 @@
-#ifndef QUEUE_H
-#define QUEUE_H
+#include <stdio.h>
+#include <sys/msg.h>
 
-#define MAX_MSG_BLOCK_SIZE 10
+#include "queues.h"
 
-struct mesg_buffer
+char *get_client_message(const int queue_index)
 {
-    long mesg_type;
-    char mesg_text[MAX_MSG_BLOCK_SIZE * 2];
-};
+    key_t key;
+    int msgid;
+    key = ftok("receiving", 69);
+    msgid = msgget(key, 0666 | IPC_CREAT);
 
-/*
-    get_client_message
+    int msgs_count = -1;
+    int received_count = 0;
+    struct mesg_buffer confirm_message;
+    confirm_message.mesg_type = queue_index;
 
-    Escuta por mensagens na fila indicada pelo indice. A transmissão é
-    divida em partes e durante o processo também envia mensagens ACK
-    até que a transmissão esteja completa
+    char *message_str;
 
-    Entradas ->
-        - queue_index: indice da fila para receber
-    Saídas ->
-        - return: ponteiro para string recebida
-*/
-char *get_client_message(int queue_index);
+    while (received_count != msgs_count)
+    {
+        struct mesg_buffer message;
 
-/*
-    send_message_buffer
+        // receive message
+        msgrcv(msgid, &message, sizeof(message), queue_index, 0);
 
-    Escuta por mensagens na fila indicada pelo indice. A transmissão é
-    divida em partes e durante o processo também recebe mensagens ACK
-    até que a transmissão esteja completa
+        if (msgs_count == -1)
+        {
+            msgs_count = atoi(message.mesg_text);
+            message_str = malloc(sizeof(char) * (MAX_MSG_BLOCK_SIZE * msgs_count + 1));
+        }
 
-    Entradas ->
-        - data: string com dados a serem enviados
-        - data_size: tamanho dos dados a ser enviados
-        - queue_index: indice da fila para enviar
-*/
-void send_message_buffer(char *data, int data_size, int queue_index);
+        int message_size = strlen(message.mesg_text);
+        for (int i = 0; i < message_size && i < MAX_MSG_BLOCK_SIZE; i++)
+        {
+            message_str[(received_count - 1) * MAX_MSG_BLOCK_SIZE + i] = message.mesg_text[i];
+        }
 
-#endif
+        received_count++;
+
+        if (received_count != msgs_count)
+        {
+            // release communication lock
+            msgsnd(msgid, &confirm_message, sizeof(message), 0);
+        }
+        else
+        {
+            // destroy queue
+            msgctl(msgid, IPC_RMID, NULL);
+        }
+    }
+
+    return message_str;
+}
+
+void send_message_buffer(const char *data, const int data_size, const int queue_index)
+{
+    int frame_count = 1 + ((data_size - 1) / MAX_MSG_BLOCK_SIZE); // int ceil of data_size / MAX_MSG_BLOCK_SIZE
+
+    key_t key;
+    int msgid;
+    key = ftok("progfile", 65);
+    msgid = msgget(key, 0666 | IPC_CREAT);
+
+    { // send header message (with frame count)
+        struct mesg_buffer message;
+        message.mesg_type = queue_index;
+        char size_buffer[MAX_MSG_BLOCK_SIZE + 1];
+        sprintf(size_buffer, "%d", frame_count + 1);
+        strcpy(message.mesg_text, size_buffer);
+        msgsnd(msgid, &message, sizeof(message), 0);
+    }
+
+    int index = 0;
+    while (index < frame_count)
+    {
+        struct mesg_buffer message;
+        char msg[100];
+        message.mesg_type = queue_index;
+
+        for (int i = MAX_MSG_BLOCK_SIZE * index;
+             i < data_size && i < MAX_MSG_BLOCK_SIZE * (index + 1);
+             i++)
+        {
+            int message_index = i - MAX_MSG_BLOCK_SIZE * index;
+            msg[message_index] = data[i];
+        }
+
+        if (index == frame_count - 1)
+        {
+            msg[data_size - MAX_MSG_BLOCK_SIZE * index] = '\0';
+        }
+        else
+        {
+            msg[10] = '\0';
+        }
+
+        strcpy(message.mesg_text, msg);
+
+        // send message
+        msgsnd(msgid, &message, sizeof(message), 0);
+
+        // await confirmation from receiver process
+        msgrcv(msgid, &message, sizeof(message), queue_index, 0);
+        index++;
+    }
+
+    // destroy queue
+    msgctl(msgid, IPC_RMID, NULL);
+}
