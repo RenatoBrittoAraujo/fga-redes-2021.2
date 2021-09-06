@@ -126,7 +126,7 @@ void main_loop(int sd, struct sockaddr_in endCli) {
     s.ack = 1 - frame_expected;
 
     while (1) {
-        wait_for_event(&event, sd, &endCli, frame_data_len);
+        wait_for_event(&event, sd, &endCli, frame_len);
         if (event == frame_arrival) {
             from_physical_layer(&r);
             if (r.seq == frame_expected) {

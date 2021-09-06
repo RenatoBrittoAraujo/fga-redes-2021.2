@@ -39,6 +39,14 @@ struct mq_attr get_mqueue_attr(mqd_t mq) {
     return attr;
 }
 
+static void print_msg(const char* prefix, char* buffer, int n) {
+    printf("%s", prefix);
+    for (int i = 0; i < n; i++) {
+        printf("%c", buffer[i]);
+    }
+    printf("\n");
+}
+
 void from_network_layer(Packet* packet, mqd_t queue, uint frame_data_len) {
     struct mq_attr attr;
     mq_getattr(queue, &attr);
@@ -46,7 +54,7 @@ void from_network_layer(Packet* packet, mqd_t queue, uint frame_data_len) {
     static char buffer[10000];
     static int get_new = 1;
     static char* iter = buffer;
-    static size_t last_msg_len;
+    static long last_msg_len;
 
     uint prio;
     if (get_new) {
@@ -73,11 +81,14 @@ void from_network_layer(Packet* packet, mqd_t queue, uint frame_data_len) {
     if (iter+frame_data_len > end) {
         memcpy(packet->data, iter, end-iter);
         packet->data_len = end-iter;
+//         print_msg("Mensagem na fila: ", iter, end-iter);
         get_new = 1;
         iter = buffer;
         return;
     }
     else {
+//         print_msg("Mensagem da fila: ", iter, frame_data_len);
+//         printf("Tamanho da ultima mensagem: %ld\n", last_msg_len);
         memcpy(packet->data, iter, frame_data_len);
         packet->data_len = frame_data_len;
     }
