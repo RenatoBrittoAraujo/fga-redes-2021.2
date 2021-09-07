@@ -39,6 +39,61 @@ struct mq_attr get_mqueue_attr(mqd_t mq) {
     return attr;
 }
 
+void send_msg_to_queue(mqd_t qd, char* msg, int msg_len, int part_len) {
+	struct mq_attr attr;
+	mq_getattr(qd, &attr);
+
+    char* iter = msg;
+    char* end = iter + msg_len;
+
+    if (part_len > msg_len) {
+        part_len = msg_len;
+    }
+
+    for (; iter < end;) {
+        long n = (iter+part_len-iter);
+        if (iter + n > end) n = end - iter;
+
+        mq_send(qd, iter, n, 0);
+        iter += part_len;
+    }
+}
+
+void receive_msg_from_queue(mqd_t qd, char* msg, long* msg_len, struct mq_attr attr) {
+    unsigned int p;
+    int n = mq_receive(qd, msg, attr.mq_msgsize, &p);
+    if (n == -1) {
+        *msg_len = -1;
+        return;
+    }
+    *msg_len = n;
+}
+
+char* read_file(const char* file_name, int* file_len) {
+    FILE *fd = fopen(file_name, "r");
+
+    char* file_content;
+    fseek(fd, 0, SEEK_END);
+    *file_len = ftell(fd);
+
+    file_content = malloc(sizeof(char)*(*file_len)+1);
+
+    rewind(fd);
+
+    fread(file_content, *file_len, sizeof(char), fd);
+
+    fclose(fd);
+    return file_content;
+}
+
+void write_file(const char* file_name, char *file_content, int file_len, char* mode) {
+    FILE *fd = fopen(file_name, mode);
+
+    fwrite(file_content, sizeof(char), file_len, fd);
+
+    fclose(fd);
+}
+
 static void print_msg(const char* prefix, char* buffer, int n) {
     printf("%s", prefix);
     for (int i = 0; i < n; i++) {
