@@ -28,16 +28,26 @@
 #define ACK_POS 2
 #define DATA_LEN_POS 3
 
-typedef enum {frame_arrival, checksum_err} event_type;
-typedef enum {nak, data} kind;
+typedef enum
+{
+    frame_arrival,
+    checksum_err
+} event_type;
+typedef enum
+{
+    nak,
+    data
+} kind;
 typedef unsigned int uint;
 
-typedef struct {
-    char* data;
+typedef struct
+{
+    char *data;
     uint data_len;
 } Packet;
 
-typedef struct {
+typedef struct
+{
     char kind;
     char seq;
     char ack;
@@ -51,8 +61,7 @@ typedef struct {
  * @arg buffer_len -> Ponteiro para um inteiro sem sinal
  * @return -> A versão em string do frame
  */
-char* frame_to_str(Frame frame, uint* buffer_len);
-
+char *frame_to_str(Frame frame, uint *buffer_len);
 
 /**
  * Transforma a string em um frame.
@@ -67,20 +76,24 @@ Frame str_to_frame(char *buffer);
  * Espera um evento acontecer e salva o tipo na variável event
  * Neste caso a ideia é esperar o próximo frame do socket.
  */
-void wait_for_event(event_type *event, int sd, struct sockaddr_in* other, uint frame_data_len);
+void wait_for_event(event_type *event, int sd, struct sockaddr_in *other, uint frame_data_len);
 
 /* Recebe um pacote da camada acima. */
-void from_network_layer(Packet* packet, mqd_t queue, uint frame_len);
+void from_network_layer(Packet *packet, mqd_t queue, uint frame_len);
 
 /* Envia um pacote para a camada acima */
-void to_network_layer(const Packet* packet, const mqd_t queue);
+void to_network_layer(const Packet *packet, const mqd_t queue);
 
 /* Recebe um pacote da camada física (ou no nosso caso, do socket) */
 void from_physical_layer(Frame *r);
 
 /* Envia um pacote para a camada física */
-void to_physical_layer(Frame *s, int sd, struct sockaddr_in* other);
+void to_physical_layer(Frame *s, int sd, struct sockaddr_in *other);
 
-#define inc(k, MAX_SEQ) if (k < MAX_SEQ) k = k + 1; else k = 0
+#define inc(k, MAX_SEQ) \
+    if (k < MAX_SEQ)    \
+        k = k + 1;      \
+    else                \
+        k = 0
 
 #endif

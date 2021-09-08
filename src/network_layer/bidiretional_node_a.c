@@ -37,13 +37,14 @@ mqd_t m_queue_w;
 struct mq_attr attr_r;
 struct mq_attr attr_w;
 
-char* READ_MQ = "/R_CLIENT_MESSAGE_QUEUE";
-char* WRITE_MQ = "/W_CLIENT_MESSAGE_QUEUE";
+char *READ_MQ = "/R_CLIENT_MESSAGE_QUEUE";
+char *WRITE_MQ = "/W_CLIENT_MESSAGE_QUEUE";
 
 int frame_len;
 int frame_data_len;
 
-void handle_SIGINT(int sig) {
+void handle_SIGINT(int sig)
+{
     mq_close(m_queue_r);
     mq_close(m_queue_w);
     mq_unlink(READ_MQ);
@@ -51,25 +52,32 @@ void handle_SIGINT(int sig) {
     exit(0);
 }
 
-int create_socket_descriptor() {
+int create_socket_descriptor()
+{
     int sd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sd < 0) {
+    if (sd < 0)
+    {
         printf("Erro ao criar o socket\n");
         exit(1);
     }
     return sd;
 }
 
-void configure_addr(char* addr, int port, struct sockaddr_in* end) {
+void configure_addr(char *addr, int port, struct sockaddr_in *end)
+{
     end->sin_family = AF_INET;
-    if (!strcmp("0", addr)) end->sin_addr.s_addr = htonl(INADDR_ANY);
-    else end->sin_addr.s_addr = inet_addr(addr);
+    if (!strcmp("0", addr))
+        end->sin_addr.s_addr = htonl(INADDR_ANY);
+    else
+        end->sin_addr.s_addr = inet_addr(addr);
     end->sin_port = htons(port);
 }
 
-int bind_socket(int sd, struct sockaddr_in* end) {
-    int rc = bind(sd, (struct sockaddr*) end, sizeof(*end));
-    if (rc < 0) {
+int bind_socket(int sd, struct sockaddr_in *end)
+{
+    int rc = bind(sd, (struct sockaddr *)end, sizeof(*end));
+    if (rc < 0)
+    {
         printf("Erro ao dar bind no endereco %s:%d", end->sin_addr.s_addr, end->sin_port);
         exit(1);
     }
@@ -77,8 +85,10 @@ int bind_socket(int sd, struct sockaddr_in* end) {
 }
 
 //Retorna o tamanho da PDU
-void process_command_line(int argc, char** argv) {
-    if (argc < 2) {
+void process_command_line(int argc, char **argv)
+{
+    if (argc < 2)
+    {
         printf("%s <tamanho_PDU>", argv[0]);
         printf("Tamanho da PDU não declarado\n");
         printf("Usando tamanho de PDU padrao: %d\n", DEFAULT);
@@ -86,26 +96,30 @@ void process_command_line(int argc, char** argv) {
         frame_data_len = frame_len - HEADER_LEN - TRAILER_LEN;
         return;
     }
-    if (atoi(argv[1]) <= 0) {
+    if (atoi(argv[1]) <= 0)
+    {
         printf("Tamanho de DPU inválido\nFavor, declarar um número maior que 0\n");
         exit(1);
     }
     frame_len = atoi(argv[1]);
     frame_data_len = frame_len - HEADER_LEN - TRAILER_LEN;
-    if (frame_len < MIN_MSG) {
+    if (frame_len < MIN_MSG)
+    {
         printf("Tamanho da DPU deve ser no mínimo %d\n", MIN_MSG);
         exit(1);
     }
 }
 
-void print_packet(Packet *p) {
-    for (uint i = 0; i < p->data_len; i++) {
+void print_packet(Packet *p)
+{
+    for (uint i = 0; i < p->data_len; i++)
+    {
         printf("%c", p->data[i]);
     }
 }
 
-
-void main_loop(int sd, struct sockaddr_in endServ) {
+void main_loop(int sd, struct sockaddr_in endServ)
+{
     /**
      * Loop baseado no Protocolo 4 da camada de enlace do livro do Tanenbaum.
      */
@@ -114,7 +128,7 @@ void main_loop(int sd, struct sockaddr_in endServ) {
     uint frame_expected;
     Frame r, s;
     Packet packet;
-    packet.data = malloc(sizeof(char)*frame_data_len);
+    packet.data = malloc(sizeof(char) * frame_data_len);
     packet.data_len = 0;
     event_type event;
 
@@ -129,15 +143,19 @@ void main_loop(int sd, struct sockaddr_in endServ) {
     s.ack = 1 - frame_expected;
     to_physical_layer(&s, sd, &endServ);
 
-    while (1) {
+    while (1)
+    {
         wait_for_event(&event, sd, &endServ, frame_len);
-        if (event == frame_arrival) {
+        if (event == frame_arrival)
+        {
             from_physical_layer(&r);
-            if (r.seq == frame_expected) {
+            if (r.seq == frame_expected)
+            {
                 to_network_layer(&r.packet, m_queue_w);
                 inc(frame_expected, 1);
             }
-            if (r.ack == next_frame_to_send) {
+            if (r.ack == next_frame_to_send)
+            {
                 from_network_layer(&packet, m_queue_r, frame_data_len);
                 inc(next_frame_to_send, 1);
             }
@@ -145,12 +163,13 @@ void main_loop(int sd, struct sockaddr_in endServ) {
         s.kind = data;
         s.packet = packet;
         s.seq = next_frame_to_send;
-        s.ack = 1-frame_expected;
+        s.ack = 1 - frame_expected;
         to_physical_layer(&s, sd, &endServ);
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
 
     signal(SIGINT, &handle_SIGINT);
 
@@ -178,7 +197,7 @@ int main(int argc, char** argv) {
 
     rc = bind_socket(sd, &endCli);
 
-	mq_getattr(m_queue_r, &attr_r);
+    mq_getattr(m_queue_r, &attr_r);
     mq_getattr(m_queue_w, &attr_w);
 
     //Código de envio a partir daqui
@@ -186,4 +205,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-

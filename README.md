@@ -1,17 +1,9 @@
 ## Trabalho 1
 
-O projeto foi feito sozinho pelo aluno Renato Britto Araujo 180027239
-
-Para compilar, levantar a rede e fazer upload do arquivo "samplefile.json":
-
-```
-./run.sh
-```
-
-Para testar, é usado o arquivo de teste `samplefile.json`
-
-Note que não foi usado MakeFile ou Docker, para que os scripts deixem bem 
-transparente o que está acontecendo.
+O projeto foi feito:
+- Wagner Martins
+- Renato Britto
+- Thiago Luiz
 
 ## Arquitetura
 
@@ -31,106 +23,40 @@ Aqui temos um diagrama da comunicação:
                                ‾‾‾‾‾‾‾‾‾‾‾
 ```
 
-Quadros, trasmitidos no canal UDP, tem 65 bits de header:
-```
-__________________________________________________________________________
-| Dados (n bits) | Indice do quadro (64 bits) | Bit de paridade (1 bits) |
-‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-```
-O indice serve para ordenar na chegada. É usado 64 bits porque suporta a
-transferência de, aproximadamente, um zettabit de dados onde cada quadro tem 
-índice único => [ (50 * 2^64) / (10^21) ] é, aproximadamente, 1
-
 
 ## Uso
 
-### e_client
-
+Compile com
 ```
-./e_client <filepath>
-```
-
-### e_node
-
-```
-./e_node <tamanho do quadro> <ip para envio> <porta para envio>
+compile.sh
 ```
 
-### r_node
-
+Rode, em um terminal, com
 ```
-./r_node <tamanho do quadro> <ip do servidor> <porta do servidor>
-```
-
-### r_client
-
-```
-./r_client
+./run_half_duplex.sh server <tamanho do quadro>
 ```
 
-## Diário
+Rode, em outro terminal terminal, com
+```
+./run_half_duplex.sh cliente <mesmo tamanho do quadro>
+```
 
-Fiz o código boilerplate para compilar e rodar o programa, além dos 4 arquivos
-reposáveis por 4 processos: cliente de leitura de arquivo, nodo de envio de
-arquivo, nodo de recebimento de arquivo e, finalmente, cliente que printa o
-arquivo recebido no terminal. Com estes quatro, será possível testar o processo
-de comunicação de redes pedido pelo projeto.
+Procure arquivos com 
+```
+ls <path> 
+por exemplo:
+ls .
+```
 
-Completei a leitura de arquivo e criei sistema básico de transmissão entre
-os processos dos emissores e os processos dos recebidores.
+Envie arquivos com 
+```
+send <path para arquivo>
+por exemplo:
+send samplefile.json
+```
 
-Encontrei um problema nas queues de transmissão de mensagem de um processo
-para outro. O problema é que, as vezes, mensagens são lidas multiplas vezes
-da fila e perdem a ordem, corrompendo a mesagem. Eu poderia resolver isso 
-com múltiplas retransmissões mas sinto que este tipo de problema deveria
-ser resolvido lendo a documentação com calma.
-
-O problema é a natureza de como funciona a trasmissão de dados com as queues.
-Foi resolvido com uma solução feia porém simples: o recebedor envia uma mensagem
-de recebimento e o emissor recebe ela. Daí o próximo pacote é retransmitido até
-que se complete a comunição IPC. Com certeza é possível encontrar uma solução
-mais elegante, porém não é prioridade: a prioridade é comunicações TCP entre
-os dois processos nodo.
-
-Não é relacionado ao projeto, mas encontrei um bug que me gastou horas para
-depurar: por algum motivo, quando eu rodava a função de capturar mensagens da
-queue, as variáveis do argv paravam de funcionar. Não conseguia entender e
-gastei umas boas horas tentando raciocinar. Finalmente, resolvi imprimir os locais
-dos ponteiros de string e notei que eles ficavam muito perto um do outro,
-principalmente o ponteiro que guarda string o arquivo no nodo. Suspeitei que a
-memória do argv estava sendo sobrescrevida pelo conteúdo do arquivo. Então, eu
-mudei o arquivo do que era para apenas "{}" e o problema sumiu, que confirmou a
-hipótese. Daí alterei o código para instanciar o ponteiro apenas dentro da
-função em um lugar de memória descontínuo do argv e o problema se resolveu.
-
-As filas ainda causam problemas. Por algum motivo que ainda não solucionei, as
-vezes, as filas de um processo afetam as do outro causando um falha na comunicação.
-Não entendo bem como essa falha acontece, e porque ela acontece apenas algumas
-vezes. Não tive tempo para investigar.
-
-A implementação da transmissão deu trabalho, e consigo enxergar diversas falhas
-nela, mas ela funciona! Faltou fazer o sistema ser mais resiliente a falhas, por
-exemplo, com um pacote perdido. Como ainda é simplex, não é possível pedir
-novamente nenhuma pacote perdido.
-
-backlog:
-- criar sistema de recuperação por retransmissão de dados corrompidos (bytes).
-- transformar tudo feito em half-duplex, realizado por 2 binários em 4 processos.
-
-## Pontos de melhoria
-
-- A comunicação na fila poderia ser feita de forma mais apropriada quando se trata
-  de ordem. O transmissor só emite mensagens quando o receptor captura uma nova, o
-  que, não necessáriamente, precisa acontecer.
-- Para implementar half-duplex, seria interessante usar threads. Atualmente, existe
-  apenas uma thread relevante em todos os processos: a principal.
-- Não existe o tratamento do caso do bit de paridade vier errado, além disso, dados
-  demais são transmitidos para apenas um bit de paridade, o que aumento o risco de
-  perda de dados
-- O servidor do receiving_node não consegue lidar com múltiplas mensagens.
-  Possivelmente, isso pode ser resolvido com um fork() e um pouco de ingenuidade.
-- A comunicações entre filas é bem problemática. Não sei a fonte do problema, mas
-  causa muitos erros.
-- Acredito que, com mais headers no pacote, seria possível discernir melhor os
-  pacotes para saber a qual grupo pertencem.
-- Ainda não existe mecânismo para a ordenação de pacotes por falta de tempo.
+Consulte o resultados dos arquivos transmitidos em
+```
+/tmp/client.out (quando enviado do server -> client)
+/tmp/server.out (quando enviado do client -> server)
+```
