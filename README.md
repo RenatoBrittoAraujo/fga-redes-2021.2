@@ -10,17 +10,17 @@ O projeto foi feito:
 Aqui temos um diagrama da comunicação:
 
 ```
-  samplefile.json ------                          --------> stdout final
-                       |                          |
-                       v                          |
-                   e_client                   r_client
-                       |                          ^
-                _______|______               _____|_______
-                |message queue|             |message queue|
-                ‾‾‾‾‾‾‾|‾‾‾‾‾‾               ‾‾‾‾‾|‾‾‾‾‾‾‾
-                       v       ___________        |
-                     e_node ---|canal UDP|----> r_node
-                               ‾‾‾‾‾‾‾‾‾‾‾
+  samplefile.json ----  ---->/tmp/server  /tmp/client<--  ---- samplefile.json 
+                     |  ^                              ^  |
+                     v  |                              |  v
+                  app_server                        app_client
+                       |                                |
+                _______|______                     _____|_______
+                |message queue|                   |message queue|
+                ‾‾‾‾‾‾‾|‾‾‾‾‾‾                     ‾‾‾‾‾|‾‾‾‾‾‾‾
+                       |           ___________          |
+                     server -------|canal UDP|------ client
+                                   ‾‾‾‾‾‾‾‾‾‾‾
 ```
 
 
